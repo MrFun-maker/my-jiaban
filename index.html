@@ -37,7 +37,7 @@ body{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;background:#f0
 .add-user input{flex:1;padding:8px 10px;border:1px solid #d0d7de;border-radius:6px;min-width:120px}
 .add-user button{padding:8px 16px;background:#0f9d58;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600}
 
-/* 数据管理专用 */
+/* 数据管理 / 提交历史 共用样式 */
 .data-filter{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:12px;background:#f8f9fa;border-radius:8px}
 .data-filter label{font-weight:600;font-size:14px}
 .data-filter input[type="date"]{padding:6px 10px;border:1px solid #d0d7de;border-radius:6px}
@@ -51,6 +51,8 @@ body{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;background:#f0
 .data-actions .del-btn:hover{background:#b71c1c}
 .data-actions .select-all-btn{background:#e8eaed;color:#333}
 .data-actions .select-all-btn:hover{background:#d2d5d9}
+.data-actions .print-btn{background:#1a73e8;color:#fff}
+.data-actions .print-btn:hover{background:#1557b0}
 
 .data-list{max-height:500px;overflow-y:auto}
 .data-item{border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin-bottom:10px;background:#fafbfc;display:flex;align-items:flex-start;gap:12px}
@@ -58,8 +60,10 @@ body{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;background:#f0
 .data-item .content{flex:1}
 .data-item .summary{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px}
 .data-item .summary strong{margin-right:4px}
-.data-item .detail-btn{background:#e8eaed;border:none;padding:2px 12px;border-radius:4px;cursor:pointer;margin-left:10px}
-.data-item .detail-btn:hover{background:#d2d5d9}
+.data-item .detail-btn,.data-item .print-single-btn{background:#e8eaed;border:none;padding:2px 12px;border-radius:4px;cursor:pointer;margin-left:6px}
+.data-item .detail-btn:hover,.data-item .print-single-btn:hover{background:#d2d5d9}
+.data-item .print-single-btn{background:#1a73e8;color:#fff}
+.data-item .print-single-btn:hover{background:#1557b0}
 .data-item .detail-content{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #ccc}
 .data-item .detail-content table{width:100%;border-collapse:collapse;font-size:13px}
 .data-item .detail-content th,.data-item .detail-content td{border:1px solid #ddd;padding:4px 6px;text-align:center}
@@ -78,6 +82,7 @@ body{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;background:#f0
 .btn-admin{background:#9c27b0;color:#fff}.btn-admin:hover{background:#7b1fa2}
 .btn-submit{background:#0f9d58;color:#fff}.btn-submit:hover{background:#0b7a45}
 .btn-data{background:#e67e22;color:#fff}.btn-data:hover{background:#d35400}
+.btn-my{background:#0288d1;color:#fff}.btn-my:hover{background:#01579b}
 .sheet-title{text-align:center;font-size:26px;font-weight:700;letter-spacing:2px;color:#1a1a2e;padding:10px 0 16px 0;border-bottom:2px solid #e8edf2;margin-bottom:18px}
 .top-info{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;padding:6px 4px}
 .top-info .field-reason{display:flex;align-items:flex-start;gap:8px;width:100%}
@@ -213,6 +218,15 @@ table{font-size:12px;min-width:540px}
     </div>
 </div>
 
+<!-- ===== 提交历史模态框 ===== -->
+<div class="modal-overlay" id="mySubmissionsModal">
+    <div class="modal-content">
+        <button class="close-modal" onclick="closeMySubmissions()">✕</button>
+        <h3>📋 提交历史</h3>
+        <div class="data-list" id="myDataList"></div>
+    </div>
+</div>
+
 <!-- ===== 主应用（填表界面） ===== -->
 <div id="mainApp">
     <div class="toolbar">
@@ -220,6 +234,7 @@ table{font-size:12px;min-width:540px}
         <button class="btn-print" onclick="handlePrint()">打印</button>
         <button class="btn-reset" onclick="handleReset()">重置</button>
         <button class="btn-submit" onclick="handleSubmit()">📤 提交</button>
+        <button class="btn-my" onclick="openMySubmissions()">📋 提交历史</button>
         <button class="btn-admin" id="btnAdmin" onclick="openAdminModal()" style="display:none;">👤 用户管理</button>
         <button class="btn-data" id="btnData" onclick="openDataModal()" style="display:none;">📊 数据管理</button>
         <button class="btn-logout" onclick="doLogout()">退出登录</button>
@@ -462,7 +477,6 @@ function renderDataList(submissions) {
     submissions.forEach(function(item, index) {
         var div = document.createElement('div');
         div.className = 'data-item';
-        // 勾选框
         var chkDiv = document.createElement('div');
         chkDiv.className = 'chk-box';
         var chk = document.createElement('input');
@@ -533,13 +547,11 @@ function exportSelected() {
         alert('所选记录不存在，可能已被删除');
         return;
     }
-    // 构建导出数据（每条记录展开为明细行）
     var rows = [];
     var header = ['提交人', '提交时间', '加班日期', '上报日期', '事由', '姓名', '项目', '时长(天)', '金额(元)', '制表人签名', '分管领导签名', '领导签名'];
     rows.push(header);
     selected.forEach(function(item) {
         var base = [item.submitter, new Date(item.submitTime).toLocaleString(), item.workDate, item.reportDate || '', item.reason || ''];
-        // 如果rows为空，则至少添加一行空明细，否则按明细展开
         if (item.rows && item.rows.length > 0) {
             item.rows.forEach(function(r) {
                 var row = base.concat([r.name||'', r.project||'', r.hours||0, r.amount||0, item.signMaker||'', item.signLeader1||'', item.signLeader2||'']);
@@ -550,10 +562,8 @@ function exportSelected() {
             rows.push(row);
         }
     });
-    // 生成 workbook
     var wb = XLSX.utils.book_new();
     var ws = XLSX.utils.aoa_to_sheet(rows);
-    // 设置列宽
     ws['!cols'] = [
         {wch:12},{wch:20},{wch:14},{wch:14},{wch:20},
         {wch:10},{wch:16},{wch:10},{wch:12},
@@ -586,8 +596,104 @@ function deleteSelected() {
     var all = getSubmissions();
     var remaining = all.filter(function(item) { return ids.indexOf(item.id) === -1; });
     saveSubmissions(remaining);
-    // 刷新列表
     applyDataFilter();
+}
+
+// ============================================================
+//  提交历史
+// ============================================================
+function openMySubmissions() {
+    document.getElementById('mySubmissionsModal').style.display = 'flex';
+    var username = sessionStorage.getItem('username') || '';
+    var all = getSubmissions();
+    var mine = all.filter(function(item) { return item.submitter === username; });
+    mine.sort(function(a,b){ return b.submitTime.localeCompare(a.submitTime); });
+    renderMySubmissions(mine);
+}
+
+function closeMySubmissions() {
+    document.getElementById('mySubmissionsModal').style.display = 'none';
+}
+
+function renderMySubmissions(submissions) {
+    var container = document.getElementById('myDataList');
+    container.innerHTML = '';
+    if (!submissions || submissions.length === 0) {
+        container.innerHTML = '<div class="no-data">您尚未提交任何加班单</div>';
+        return;
+    }
+    submissions.forEach(function(item) {
+        var div = document.createElement('div');
+        div.className = 'data-item';
+        var contentDiv = document.createElement('div');
+        contentDiv.className = 'content';
+        var summary = document.createElement('div');
+        summary.className = 'summary';
+        summary.innerHTML = 
+            '<span><strong>提交时间：</strong>' + new Date(item.submitTime).toLocaleString() + '</span>' +
+            '<span><strong>加班日期：</strong>' + item.workDate + '</span>' +
+            '<span><strong>总人数：</strong>' + item.totalPeople + '</span>' +
+            '<span><strong>总金额：</strong>' + item.totalAmount.toFixed(2) + ' 元</span>' +
+            '<button class="detail-btn" onclick="toggleDetail(this)">查看详情</button>' +
+            '<button class="print-single-btn" onclick="printSingleSubmission(\'' + item.id + '\')">🖨️ 打印此单</button>';
+        contentDiv.appendChild(summary);
+        var detail = document.createElement('div');
+        detail.className = 'detail-content';
+        var tableHtml = '<table><thead><tr><th>序号</th><th>姓名</th><th>项目</th><th>时长(天)</th><th>金额(元)</th></tr></thead><tbody>';
+        item.rows.forEach(function(row, idx) {
+            tableHtml += '<tr><td>' + (idx+1) + '</td><td>' + (row.name||'') + '</td><td>' + (row.project||'') + '</td><td>' + (row.hours||0) + '</td><td>' + (row.amount||0).toFixed(2) + '</td></tr>';
+        });
+        tableHtml += '</tbody></table>';
+        detail.innerHTML = tableHtml;
+        contentDiv.appendChild(detail);
+        div.appendChild(contentDiv);
+        container.appendChild(div);
+    });
+}
+
+// ===== 打印单条提交记录 =====
+function printSingleSubmission(id) {
+    var all = getSubmissions();
+    var item = all.find(function(i) { return i.id === id; });
+    if (!item) {
+        alert('记录不存在');
+        return;
+    }
+    var win = window.open('', '_blank');
+    win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>加班单打印</title><style>');
+    win.document.write('body{font-family:Microsoft YaHei;padding:20px;margin:0}');
+    win.document.write('.title{text-align:center;font-size:22px;font-weight:bold;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:20px}');
+    win.document.write('.info{display:flex;flex-wrap:wrap;gap:10px 30px;margin-bottom:15px;font-size:15px}');
+    win.document.write('.info span{display:inline-block}');
+    win.document.write('table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}');
+    win.document.write('th,td{border:1px solid #000;padding:6px 8px;text-align:center}');
+    win.document.write('th{background:#e9edf2}');
+    win.document.write('.signature{display:flex;justify-content:space-around;margin-top:20px;font-size:15px}');
+    win.document.write('.signature .field{display:flex;align-items:center;gap:6px}');
+    win.document.write('.signature .field input{border:none;border-bottom:1px solid #000;width:120px;background:transparent}');
+    win.document.write('.footer{text-align:right;margin-top:10px;font-size:13px;color:#666}');
+    win.document.write('</style></head><body>');
+    win.document.write('<div class="title">上海市金卫中学加班申请表</div>');
+    win.document.write('<div class="info">');
+    win.document.write('<span><strong>加班内容或事由：</strong>' + (item.reason||'') + '</span>');
+    win.document.write('<span><strong>加班日期：</strong>' + item.workDate + '</span>');
+    win.document.write('<span><strong>上报日期：</strong>' + (item.reportDate||'') + '</span>');
+    win.document.write('</div>');
+    win.document.write('<table><thead><tr><th>序号</th><th>姓名</th><th>负责项目</th><th>加班时长(天)</th><th>金额(元)</th></tr></thead><tbody>');
+    item.rows.forEach(function(r, idx) {
+        win.document.write('<tr><td>'+(idx+1)+'</td><td>'+r.name+'</td><td>'+r.project+'</td><td>'+r.hours+'</td><td>'+r.amount.toFixed(2)+'</td></tr>');
+    });
+    win.document.write('</tbody></table>');
+    win.document.write('<div style="margin-top:10px;font-weight:bold;text-align:right;">合计人数：' + item.totalPeople + ' 人，合计金额：' + item.totalAmount.toFixed(2) + ' 元</div>');
+    win.document.write('<div class="signature">');
+    win.document.write('<div class="field"><span>制表人签名：</span><input type="text" value="'+item.signMaker+'" readonly style="border-bottom:1px solid #000;" /></div>');
+    win.document.write('<div class="field"><span>分管领导签名：</span><input type="text" value="'+item.signLeader1+'" readonly style="border-bottom:1px solid #000;" /></div>');
+    win.document.write('<div class="field"><span>领导签名：</span><input type="text" value="'+item.signLeader2+'" readonly style="border-bottom:1px solid #000;" /></div>');
+    win.document.write('</div>');
+    win.document.write('<div class="footer">打印时间：' + new Date().toLocaleString() + '</div>');
+    win.document.write('</body></html>');
+    win.document.close();
+    win.print();
 }
 
 // ============================================================
