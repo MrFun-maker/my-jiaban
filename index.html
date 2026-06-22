@@ -1,21 +1,83 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>上海市金卫中学加班申请表</title>
-
+<title>上海市金卫中学加班申请表 - 登录</title>
+<!-- 引入 SheetJS 用于导出 Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;background:#f0f2f5;padding:30px 20px;display:flex;flex-direction:column;align-items:center}
-.container{max-width:1300px;width:100%;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,0.08);border-radius:12px;padding:30px 28px 35px}
+body{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;background:#f0f2f5;padding:30px 20px;display:flex;flex-direction:column;align-items:center;min-height:100vh;justify-content:center}
+
+/* ----- 登录界面 ----- */
+#loginPanel{max-width:400px;width:100%;background:#fff;padding:40px 30px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.1);text-align:center}
+#loginPanel h2{margin-bottom:20px;color:#1a1a2e}
+#loginPanel .input-group{margin-bottom:16px;text-align:left}
+#loginPanel .input-group label{display:block;font-weight:600;font-size:14px;color:#2c3e50;margin-bottom:4px}
+#loginPanel .input-group input{width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:15px}
+#loginPanel .input-group input:focus{border-color:#1a73e8;outline:none;box-shadow:0 0 0 3px rgba(26,115,232,0.15)}
+#loginPanel .btn-login{width:100%;padding:10px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;transition:background 0.2s}
+#loginPanel .btn-login:hover{background:#1557b0}
+#loginPanel .login-error{color:#d32f2f;font-size:14px;margin-top:10px;min-height:20px}
+
+/* ----- 管理面板 (模态框) 通用 ----- */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center}
+.modal-content{background:#fff;border-radius:12px;padding:30px;max-width:900px;width:95%;max-height:85vh;overflow-y:auto;position:relative}
+.modal-content .close-modal{position:absolute;top:10px;right:18px;background:#e8eaed;border:none;padding:2px 12px;border-radius:4px;cursor:pointer;font-size:18px}
+.modal-content h3{margin-bottom:16px;color:#1a1a2e}
+.modal-content .admin-error{color:#d32f2f;font-size:13px;margin-top:6px}
+
+/* 用户管理专用 */
+.user-list{margin:16px 0;border-top:1px solid #e8edf2}
+.user-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f2f5}
+.user-item .del-btn{color:#d32f2f;cursor:pointer;font-weight:600;margin-left:12px}
+.add-user{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.add-user input{flex:1;padding:8px 10px;border:1px solid #d0d7de;border-radius:6px;min-width:120px}
+.add-user button{padding:8px 16px;background:#0f9d58;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600}
+
+/* 数据管理专用 */
+.data-filter{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:12px;background:#f8f9fa;border-radius:8px}
+.data-filter label{font-weight:600;font-size:14px}
+.data-filter input[type="date"]{padding:6px 10px;border:1px solid #d0d7de;border-radius:6px}
+.data-filter button{padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer}
+.data-filter button:hover{background:#1557b0}
+.data-actions{display:flex;gap:12px;margin:12px 0 16px 0;flex-wrap:wrap}
+.data-actions button{padding:8px 20px;border:none;border-radius:6px;font-weight:600;cursor:pointer}
+.data-actions .export-btn{background:#0f9d58;color:#fff}
+.data-actions .export-btn:hover{background:#0b7a45}
+.data-actions .del-btn{background:#d32f2f;color:#fff}
+.data-actions .del-btn:hover{background:#b71c1c}
+.data-actions .select-all-btn{background:#e8eaed;color:#333}
+.data-actions .select-all-btn:hover{background:#d2d5d9}
+
+.data-list{max-height:500px;overflow-y:auto}
+.data-item{border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin-bottom:10px;background:#fafbfc;display:flex;align-items:flex-start;gap:12px}
+.data-item .chk-box{margin-top:4px}
+.data-item .content{flex:1}
+.data-item .summary{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px}
+.data-item .summary strong{margin-right:4px}
+.data-item .detail-btn{background:#e8eaed;border:none;padding:2px 12px;border-radius:4px;cursor:pointer;margin-left:10px}
+.data-item .detail-btn:hover{background:#d2d5d9}
+.data-item .detail-content{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #ccc}
+.data-item .detail-content table{width:100%;border-collapse:collapse;font-size:13px}
+.data-item .detail-content th,.data-item .detail-content td{border:1px solid #ddd;padding:4px 6px;text-align:center}
+.data-item .detail-content th{background:#e9edf2}
+.no-data{text-align:center;color:#999;padding:20px}
+
+/* ----- 主应用容器 (填表) ----- */
+#mainApp{display:none;max-width:1300px;width:100%;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,0.08);border-radius:12px;padding:30px 28px 35px;margin-top:20px}
 .toolbar{display:flex;justify-content:flex-end;gap:12px;margin-bottom:22px;flex-wrap:wrap}
 .toolbar button{padding:8px 24px;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s,transform 0.1s;display:inline-flex;align-items:center;gap:6px}
 .toolbar button:active{transform:scale(0.96)}
 .btn-print{background:#1a73e8;color:#fff}.btn-print:hover{background:#1557b0}
-.btn-export{background:#0f9d58;color:#fff}.btn-export:hover{background:#0b7a45}
 .btn-reset{background:#e8eaed;color:#3c4043}.btn-reset:hover{background:#d2d5d9}
 .btn-add-row{background:#fbbc04;color:#1e1e1e}.btn-add-row:hover{background:#e5a800}
+.btn-logout{background:#e8eaed;color:#3c4043}.btn-logout:hover{background:#d2d5d9}
+.btn-admin{background:#9c27b0;color:#fff}.btn-admin:hover{background:#7b1fa2}
+.btn-submit{background:#0f9d58;color:#fff}.btn-submit:hover{background:#0b7a45}
+.btn-data{background:#e67e22;color:#fff}.btn-data:hover{background:#d35400}
 .sheet-title{text-align:center;font-size:26px;font-weight:700;letter-spacing:2px;color:#1a1a2e;padding:10px 0 16px 0;border-bottom:2px solid #e8edf2;margin-bottom:18px}
 .top-info{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;padding:6px 4px}
 .top-info .field-reason{display:flex;align-items:flex-start;gap:8px;width:100%}
@@ -58,111 +120,641 @@ table tbody td .amount-display{font-weight:700;color:#0b5e2b;font-size:14px}
 .sign-row .sign-field input{border:none;border-bottom:1px solid #d0d7de;padding:4px 8px;font-size:15px;width:120px;background:transparent;transition:border-color 0.2s;font-family:inherit}
 .sign-row .sign-field input:focus{border-bottom-color:#1a73e8;outline:none}
 table tbody tr:hover td{background:#f8faff}
-@page{size:A4 portrait;margin:3mm}@media print{body{background:#fff;padding:0;margin:0;font-size:inherit!important}.container{box-shadow:none;border-radius:0;padding:5px 5px!important;width:100%!important;max-width:none!important;page-break-inside:avoid!important}.toolbar{display:none!important}.btn-print,..btn-reset,.btn-add-row{display:none!important}.table-wrap{overflow-x:visible!important;border:1px solid #000;border-radius:0}table{width:100%!important;font-size:14px!important}table thead th{border:2px solid #000!important;background:#e9edf2!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#000;padding:6px 4px!important}table tbody td{border:2px solid #000!important;padding:2px 2px!important;height:28px!important}table tbody td input,table tbody td select{background:transparent!important;box-shadow:none!important;padding:1px 4px!important;height:24px!important;font-size:14px!important;border-color:transparent!important}table tbody td input[readonly]{background:transparent!important;color:#000!important}.top-info .field-reason{flex-direction:row!important;align-items:flex-start!important}.top-info .field-reason textarea{max-width:500px!important;border:none!important;border-bottom:1px solid #000!important;background:transparent!important;border-radius:0!important}.top-info .field-dates{flex-direction:row!important}.top-info .field-dates .date-item input{width:240px!important;border:none!important;border-bottom:1px solid #000!important;background:transparent!important;border-radius:0!important}.sign-row{flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-evenly!important;padding:14px 0 6px 0!important;border-top:1px solid #000!important;margin-top:6px!important}.sign-row .sign-field{flex:0 1 auto!important;min-width:200px!important;gap:6px!important;font-size:14px!important}.sign-row .sign-field input{border-bottom:1px solid #000!important;width:120px!important;padding:4px 8px!important}.footer-stats{flex-direction:row!important;justify-content:space-between!important}}
-@media (max-width:768px){.container{padding:16px 12px}.top-info .field-reason{flex-direction:column;align-items:stretch}.top-info .field-reason textarea{width:100%}.top-info .field-dates{flex-direction:column;gap:10px}.top-info .field-dates .date-item{width:100%}.top-info .field-dates .date-item input[type="date"]{width:100%}.toolbar{justify-content:center}.footer-stats{flex-direction:column;align-items:stretch;gap:8px}.sign-row{flex-direction:column;align-items:stretch;gap:10px}.sign-row .sign-field{justify-content:space-between;min-width:unset}.sign-row .sign-field input{width:60%}table{font-size:12px;min-width:540px}}
+
+@page{size:A4 portrait;margin:3mm}
+@media print{
+body{background:#fff;padding:0;margin:0;font-size:inherit!important}
+#mainApp{box-shadow:none;border-radius:0;padding:5px 5px!important;width:100%!important;max-width:none!important;page-break-inside:avoid!important}
+.toolbar{display:none!important}
+.table-wrap{overflow-x:visible!important;border:1px solid #000;border-radius:0}
+table{width:100%!important;font-size:14px!important}
+table thead th{border:2px solid #000!important;background:#e9edf2!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#000;padding:6px 4px!important}
+table tbody td{border:2px solid #000!important;padding:2px 2px!important;height:28px!important}
+table tbody td input,table tbody td select{background:transparent!important;box-shadow:none!important;padding:1px 4px!important;height:24px!important;font-size:14px!important;border-color:transparent!important}
+table tbody td input[readonly]{background:transparent!important;color:#000!important}
+.top-info .field-reason{flex-direction:row!important;align-items:flex-start!important}
+.top-info .field-reason textarea{max-width:500px!important;border:none!important;border-bottom:1px solid #000!important;background:transparent!important;border-radius:0!important}
+.top-info .field-dates{flex-direction:row!important}
+.top-info .field-dates .date-item input{width:240px!important;border:none!important;border-bottom:1px solid #000!important;background:transparent!important;border-radius:0!important}
+.sign-row{flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-evenly!important;padding:14px 0 6px 0!important;border-top:1px solid #000!important;margin-top:6px!important}
+.sign-row .sign-field{flex:0 1 auto!important;min-width:200px!important;gap:6px!important;font-size:14px!important}
+.sign-row .sign-field input{border-bottom:1px solid #000!important;width:120px!important;padding:4px 8px!important}
+.footer-stats{flex-direction:row!important;justify-content:space-between!important}
+}
+@media (max-width:768px){
+#mainApp{padding:16px 12px}
+.top-info .field-reason{flex-direction:column;align-items:stretch}
+.top-info .field-reason textarea{width:100%}
+.top-info .field-dates{flex-direction:column;gap:10px}
+.top-info .field-dates .date-item{width:100%}
+.top-info .field-dates .date-item input[type="date"]{width:100%}
+.toolbar{justify-content:center}
+.footer-stats{flex-direction:column;align-items:stretch;gap:8px}
+.sign-row{flex-direction:column;align-items:stretch;gap:10px}
+.sign-row .sign-field{justify-content:space-between;min-width:unset}
+.sign-row .sign-field input{width:60%}
+table{font-size:12px;min-width:540px}
+}
 </style>
 </head>
 <body>
-<div class="container" id="app">
-<div class="toolbar">
-<button class="btn-add-row" onclick="addTableRow()">添加行</button>
-<button class="btn-print" onclick="handlePrint()">打印</button>
-<button class="btn-export" onclick="handleSaveImage()">保存图片</button>
-<button class="btn-reset" onclick="handleReset()">重置</button>
+
+<!-- ===== 登录界面 ===== -->
+<div id="loginPanel">
+    <h2>上海市金卫中学<br>加班申请表</h2>
+    <div class="input-group">
+        <label>用户名</label>
+        <input type="text" id="loginUsername" placeholder="请输入用户名" />
+    </div>
+    <div class="input-group">
+        <label>密码</label>
+        <input type="password" id="loginPassword" placeholder="请输入密码" />
+    </div>
+    <button class="btn-login" onclick="doLogin()">登 录</button>
+    <div class="login-error" id="loginError"></div>
 </div>
-<div class="sheet-title">上海市金卫中学加班申请表</div>
-<div class="top-info">
-<div class="field-reason"><label for="reason">加班内容或事由：</label><textarea id="reason" rows="1" placeholder="请填写加班事由..."></textarea></div>
-<div class="field-dates">
-<div class="date-item"><label for="workDate">加班日期：</label><input type="date" id="workDate" /></div>
-<div class="date-item"><label for="reportDate">上报日期：</label><input type="date" id="reportDate" /></div>
+
+<!-- ===== 管理面板：用户管理 ===== -->
+<div class="modal-overlay" id="adminModal">
+    <div class="modal-content">
+        <button class="close-modal" onclick="closeAdminModal()">✕</button>
+        <h3>用户管理</h3>
+        <div id="adminError" class="admin-error"></div>
+        <div class="user-list" id="userList"></div>
+        <div class="add-user">
+            <input type="text" id="newUsername" placeholder="新用户名" />
+            <input type="text" id="newPassword" placeholder="密码" />
+            <button onclick="addUser()">添加用户</button>
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:#666;">* 初始管理员：admin / admin（建议修改）</div>
+    </div>
 </div>
+
+<!-- ===== 管理面板：数据管理 ===== -->
+<div class="modal-overlay" id="dataModal">
+    <div class="modal-content">
+        <button class="close-modal" onclick="closeDataModal()">✕</button>
+        <h3>📊 加班单数据管理</h3>
+        <div class="data-filter">
+            <label>提交日期从</label>
+            <input type="date" id="filterStart" />
+            <label>到</label>
+            <input type="date" id="filterEnd" />
+            <button onclick="applyDataFilter()">筛选</button>
+            <button onclick="resetDataFilter()" style="background:#e8eaed;color:#333;">重置</button>
+        </div>
+        <div class="data-actions">
+            <button class="select-all-btn" onclick="toggleAllCheckboxes()">全选/取消全选</button>
+            <button class="export-btn" onclick="exportSelected()">📥 导出选中</button>
+            <button class="del-btn" onclick="deleteSelected()">🗑️ 删除选中</button>
+        </div>
+        <div id="dataError" class="admin-error"></div>
+        <div class="data-list" id="dataList"></div>
+    </div>
 </div>
-<div class="table-wrap">
-<table id="mainTable">
-<thead><tr>
-<th class="col-seq">序号</th><th class="col-id">编号</th><th class="col-name">姓名</th><th class="col-project">负责项目</th><th class="col-hours">加班时长</th><th class="col-unit">天</th><th class="col-amount">金额</th><th class="col-sign">签&nbsp;名</th>
-</tr></thead>
-<tbody id="tableBody"></tbody>
-</table>
+
+<!-- ===== 主应用（填表界面） ===== -->
+<div id="mainApp">
+    <div class="toolbar">
+        <button class="btn-add-row" onclick="addTableRow()">添加行</button>
+        <button class="btn-print" onclick="handlePrint()">打印</button>
+        <button class="btn-reset" onclick="handleReset()">重置</button>
+        <button class="btn-submit" onclick="handleSubmit()">📤 提交</button>
+        <button class="btn-admin" id="btnAdmin" onclick="openAdminModal()" style="display:none;">👤 用户管理</button>
+        <button class="btn-data" id="btnData" onclick="openDataModal()" style="display:none;">📊 数据管理</button>
+        <button class="btn-logout" onclick="doLogout()">退出登录</button>
+    </div>
+    <div class="sheet-title">上海市金卫中学加班申请表</div>
+    <div class="top-info">
+        <div class="field-reason"><label for="reason">加班内容或事由：</label><textarea id="reason" rows="1" placeholder="请填写加班事由..."></textarea></div>
+        <div class="field-dates">
+            <div class="date-item"><label for="workDate">加班日期：</label><input type="date" id="workDate" /></div>
+            <div class="date-item"><label for="reportDate">上报日期：</label><input type="date" id="reportDate" /></div>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table id="mainTable">
+            <thead><tr>
+                <th class="col-seq">序号</th><th class="col-id">编号</th><th class="col-name">姓名</th><th class="col-project">负责项目</th><th class="col-hours">加班时长</th><th class="col-unit">天</th><th class="col-amount">金额</th><th class="col-sign">签&nbsp;名</th>
+            </tr></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+    <div class="footer-stats">
+        <div class="stat-item"><span class="label">加班人数</span><span class="num" id="countPeople">0</span><span class="label">人</span></div>
+        <div class="stat-item" style="margin-left:auto"><span class="label">合计金额</span><span class="total-amount" id="totalAmount">0.00</span><span class="label">元</span></div>
+    </div>
+    <div class="sign-row">
+        <div class="sign-field"><span>制表人签名：</span><input type="text" id="signMaker" /></div>
+        <div class="sign-field"><span>分管领导签名：</span><input type="text" id="signLeader1" /></div>
+        <div class="sign-field"><span>领导签名：</span><input type="text" id="signLeader2" /></div>
+    </div>
 </div>
-<div class="footer-stats">
-<div class="stat-item"><span class="label">加班人数</span><span class="num" id="countPeople">0</span><span class="label">人</span></div>
-<div class="stat-item" style="margin-left:auto"><span class="label">合计金额</span><span class="total-amount" id="totalAmount">0.00</span><span class="label">元</span></div>
-</div>
-<div class="sign-row">
-<div class="sign-field"><span>制表人签名：</span><input type="text" id="signMaker" /></div>
-<div class="sign-field"><span>分管领导签名：</span><input type="text" id="signLeader1" /></div>
-<div class="sign-field"><span>领导签名：</span><input type="text" id="signLeader2" /></div>
-</div>
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <script>
-(function(){'use strict';
-var E=[{i:1,n:'姚连英'},{i:2,n:'陈凤英'},{i:3,n:'沈秀明'},{i:4,n:'周伟'},{i:5,n:'叶勤'},{i:6,n:'丁福平'},{i:7,n:'潘叶萍'},{i:8,n:'宋卫兵'},{i:9,n:'郑红霞'},{i:10,n:'沈仁美'},{i:11,n:'陈娟红'},{i:12,n:'盛涛'},{i:13,n:'丁志林'},{i:14,n:'周纪'},{i:15,n:'奚向红'},{i:16,n:'邱世军'},{i:17,n:'沈萍茹'},{i:18,n:'杨伟伟'},{i:19,n:'李清'},{i:20,n:'黄东华'},{i:21,n:'盛春燕'},{i:22,n:'唐娟红'},{i:23,n:'袁美方'},{i:24,n:'潘玲贤'},{i:25,n:'姚士红'},{i:26,n:'周民蕾'},{i:27,n:'曹金花'},{i:28,n:'魏金霞'},{i:29,n:'赵晓慧'},{i:30,n:'徐娇华'},{i:31,n:'刘鹰'},{i:32,n:'陈小妹'},{i:33,n:'黄景观'},{i:34,n:'沈悦玲'},{i:35,n:'彭军芳'},{i:36,n:'沈文彬'},{i:37,n:'朱卫红'},{i:38,n:'王红星'},{i:39,n:'张海江'},{i:40,n:'陈建蓉'},{i:41,n:'王其敏'},{i:42,n:'王娟'},{i:43,n:'顾益粗'},{i:44,n:'蒋军妹'},{i:45,n:'高峻'},{i:46,n:'江英'},{i:47,n:'姚爱华'},{i:48,n:'杨红燕'},{i:49,n:'张奇鸣'},{i:50,n:'戎一超'},{i:51,n:'顾迎梅'},{i:52,n:'张传丽'},{i:53,n:'陈霄'},{i:54,n:'朱东新'},{i:55,n:'孙燕'},{i:56,n:'欧丽娜'},{i:57,n:'孙蓝'},{i:58,n:'杨文峰'},{i:59,n:'施娟'},{i:60,n:'奚美'},{i:61,n:'何绮健'},{i:62,n:'谷丹丹'},{i:63,n:'方时超'},{i:64,n:'吴怡婷'},{i:65,n:'吴楚婷'},{i:66,n:'祝伟国'},{i:67,n:'俞佳蕾'},{i:68,n:'陈琢'},{i:69,n:'王正伟'},{i:70,n:'高远'},{i:71,n:'孙玉'},{i:72,n:'陈威'},{i:73,n:'郑莉琳'},{i:74,n:'吴烨'},{i:75,n:'张超雄'},{i:76,n:'黄飞扬'},{i:77,n:'张颖'},{i:78,n:'盛伊凡'},{i:79,n:'张孟琦'},{i:80,n:'黎佳鋆'},{i:81,n:'谢驹伟'},{i:82,n:'徐奕炜'},{i:83,n:'陈佳妮'},{i:84,n:'王方方'},{i:85,n:'夏家浩'},{i:86,n:'吕祺雯'},{i:87,n:'张雨欣'},{i:88,n:'薛佳雯'},{i:89,n:'徐宏强'},{i:90,n:'刘小会'},{i:91,n:'朱欣杰'},{i:92,n:'林丹'},{i:93,n:'马梓昕'},{i:94,n:'杨锦'},{i:95,n:'鲍蕾'},{i:96,n:'王璇'}];
-var M={},N=E.map(function(x){M[x.n]=x.i;return x.n});
-var R=120,D=[];
-function I(a){D=[];for(var i=0;i<a;i++)D.push({n:'',p:'',h:0,s:''})}
-I(10);  // 初始10行
-var B=document.getElementById('tableBody'),CP=document.getElementById('countPeople'),TA=document.getElementById('totalAmount'),WD=document.getElementById('workDate'),RD=document.getElementById('reportDate');
-function T(){
-B.innerHTML='';
-for(var i=0;i<D.length;i++){
-var tr=document.createElement('tr'),d=D[i];
-var c1=document.createElement('td');c1.className='col-seq';c1.textContent=i+1;tr.appendChild(c1);
-
-var c2=document.createElement('td');c2.className='col-id';var i2=document.createElement('input');i2.type='text';i2.readOnly=true;i2.value=d.n&&M[d.n]?M[d.n]:'';c2.appendChild(i2);tr.appendChild(c2);
-var c3=document.createElement('td');c3.className='col-name';var sl=document.createElement('input');sl.type='text';sl.autocomplete='off';
-
-N.forEach(function(n){var o=document.createElement('option');o.value=n;o.textContent=n;sl.appendChild(o)});
-if(d.n)sl.value=d.n;var dl=document.createElement('datalist');dl.id='nl'+i;N.forEach(function(n){var o=document.createElement('option');o.value=n;dl.appendChild(o)});c3.appendChild(dl);
-sl.oninput=function(){var ri=parseInt(this.dataset.row);D[ri].n=this.value;var id=document.querySelector('#tableBody tr:nth-child('+(ri+1)+') td.col-id input');if(id)id.value=D[ri].n&&M[D[ri].n]?M[D[ri].n]:'';U()};
-sl.setAttribute('list','nl'+i);sl.dataset.row=i;c3.appendChild(sl);tr.appendChild(c3);
-
-var c4=document.createElement('td');c4.className='col-project';var p2=document.createElement('input');p2.type='text';p2.placeholder="";p2.value=d.p||'';p2.oninput=function(){D[parseInt(this.dataset.row)].p=this.value};p2.dataset.row=i;c4.appendChild(p2);tr.appendChild(c4);
-
-var c5=document.createElement('td');c5.className='col-hours';var h2=document.createElement('input');h2.type='number';h2.step='0.5';h2.min='0';h2.value=d.h||'';h2.oninput=function(){var ri=parseInt(this.dataset.row),v=parseFloat(this.value);D[ri].h=isNaN(v)||v===0?0:v;var sp=document.querySelector('#tableBody tr:nth-child('+(ri+1)+') td.col-amount .amount-display');if(sp)sp.textContent=D[ri].h>0?(D[ri].h*R).toFixed(2):"";U()};h2.dataset.row=i;c5.appendChild(h2);tr.appendChild(c5);
-var c6=document.createElement('td');c6.className='col-unit';var sp=document.createElement('span');sp.className='unit-text';sp.textContent='天';c6.appendChild(sp);tr.appendChild(c6);
-var c7=document.createElement('td');c7.className='col-amount';var sp2=document.createElement('span');sp2.className='amount-display';sp2.textContent=(d.h&&(parseFloat(d.h))>0?((parseFloat(d.h)*R).toFixed(2)):"");c7.appendChild(sp2);tr.appendChild(c7);
-var c8=document.createElement('td');c8.className='col-sign';var s2=document.createElement('input');s2.type='text';s2.placeholder="";s2.value=d.s||'';s2.oninput=function(){D[parseInt(this.dataset.row)].s=this.value};s2.dataset.row=i;c8.appendChild(s2);tr.appendChild(c8);
-B.appendChild(tr);
-}
-var n=new Date(),ds=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
-if(!WD.value)WD.value=ds;
-if(!RD.value)RD.value=ds;
-U();
+// ============================================================
+//  用户管理 (localStorage)
+// ============================================================
+function getUsers() {
+    var raw = localStorage.getItem('users');
+    if (!raw) {
+        var defaultUsers = [{ username: 'admin', password: 'admin' }];
+        localStorage.setItem('users', JSON.stringify(defaultUsers));
+        return defaultUsers;
+    }
+    try { return JSON.parse(raw); } catch(e) { return []; }
 }
 
-function U(){var c=0,t=0;for(var i=0;i<D.length;i++){if(D[i].n&&D[i].n.trim()!=='')c++;t+=(D[i].h||0)*R}CP.textContent=c;TA.textContent=t.toFixed(2)}
-window.addTableRow=function(){D.push({n:'',p:'',h:0,s:''});T();var w=document.querySelector('.table-wrap');if(w)w.scrollTop=w.scrollHeight};
-window.handlePrint=function(){window.print()};
-document.addEventListener('DOMContentLoaded',T);
-window.handleSaveImage=function(){
-if(typeof html2canvas==="undefined"){alert("请检查网络连接后重试");window.print();return}
-html2canvas(document.getElementById("app"),{scale:2,useCORS:true,logging:false,backgroundColor:"#fff"}).then(function(canvas){
-var link=document.createElement("a");link.download="上海市金卫中学加班费申请表.png";link.href=canvas.toDataURL("image/png");link.click()}).catch(function(){alert("生成图片失败，将使用打印方式");window.print()})};
+function saveUsers(users) {
+    localStorage.setItem('users', JSON.stringify(users));
+}
 
-// ========== 重置功能：恢复为10行 ==========
-window.handleReset = function() {
-    // 重新初始化为10行空数据
-    I(10);
-    // 清空顶部事由
-    document.getElementById('reason').value = '';
-    // 清空三个签名
-    document.getElementById('signMaker').value = '';
-    document.getElementById('signLeader1').value = '';
-    document.getElementById('signLeader2').value = '';
-    // 重置日期为今天
-    var n = new Date();
-    var ds = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
-    document.getElementById('workDate').value = ds;
-    document.getElementById('reportDate').value = ds;
-    // 重新渲染
-    T();
+function authenticate(username, password) {
+    var users = getUsers();
+    for (var i = 0; i < users.length; i++) {
+        if (users[i].username === username && users[i].password === password) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// ============================================================
+//  登录 / 登出 / 切换界面
+// ============================================================
+function doLogin() {
+    var username = document.getElementById('loginUsername').value.trim();
+    var password = document.getElementById('loginPassword').value.trim();
+    var errorEl = document.getElementById('loginError');
+    if (!username || !password) {
+        errorEl.textContent = '请输入用户名和密码';
+        return;
+    }
+    if (authenticate(username, password)) {
+        sessionStorage.setItem('loggedIn', 'true');
+        sessionStorage.setItem('username', username);
+        document.getElementById('loginPanel').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        errorEl.textContent = '';
+        if (username === 'admin') {
+            document.getElementById('btnAdmin').style.display = 'inline-flex';
+            document.getElementById('btnData').style.display = 'inline-flex';
+        } else {
+            document.getElementById('btnAdmin').style.display = 'none';
+            document.getElementById('btnData').style.display = 'none';
+        }
+        initApp();
+        if (window.handleReset) {
+            window.handleReset();
+        }
+    } else {
+        errorEl.textContent = '用户名或密码错误，请重试';
+    }
+}
+
+function doLogout() {
+    sessionStorage.removeItem('loggedIn');
+    sessionStorage.removeItem('username');
+    document.getElementById('loginPanel').style.display = 'block';
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginError').textContent = '';
+}
+
+function checkLogin() {
+    if (sessionStorage.getItem('loggedIn') === 'true') {
+        var username = sessionStorage.getItem('username') || '';
+        document.getElementById('loginPanel').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        if (username === 'admin') {
+            document.getElementById('btnAdmin').style.display = 'inline-flex';
+            document.getElementById('btnData').style.display = 'inline-flex';
+        } else {
+            document.getElementById('btnAdmin').style.display = 'none';
+            document.getElementById('btnData').style.display = 'none';
+        }
+        initApp();
+        if (window.handleReset) {
+            window.handleReset();
+        }
+    } else {
+        document.getElementById('loginPanel').style.display = 'block';
+        document.getElementById('mainApp').style.display = 'none';
+    }
+}
+
+// ============================================================
+//  用户管理面板
+// ============================================================
+function openAdminModal() {
+    document.getElementById('adminModal').style.display = 'flex';
+    renderUserList();
+    document.getElementById('adminError').textContent = '';
+}
+
+function closeAdminModal() {
+    document.getElementById('adminModal').style.display = 'none';
+}
+
+function renderUserList() {
+    var users = getUsers();
+    var container = document.getElementById('userList');
+    container.innerHTML = '';
+    users.forEach(function(u, idx) {
+        var div = document.createElement('div');
+        div.className = 'user-item';
+        var span = document.createElement('span');
+        span.textContent = u.username + (u.username === 'admin' ? ' (管理员)' : '');
+        var del = document.createElement('span');
+        del.className = 'del-btn';
+        del.textContent = '删除';
+        del.onclick = function() {
+            if (u.username === 'admin') {
+                document.getElementById('adminError').textContent = '不能删除默认管理员';
+                return;
+            }
+            if (confirm('确定删除用户 "' + u.username + '" 吗？')) {
+                var newUsers = users.filter(function(item) { return item.username !== u.username; });
+                saveUsers(newUsers);
+                renderUserList();
+            }
+        };
+        div.appendChild(span);
+        div.appendChild(del);
+        container.appendChild(div);
+    });
+}
+
+function addUser() {
+    var username = document.getElementById('newUsername').value.trim();
+    var password = document.getElementById('newPassword').value.trim();
+    var errorEl = document.getElementById('adminError');
+    if (!username || !password) {
+        errorEl.textContent = '用户名和密码不能为空';
+        return;
+    }
+    var users = getUsers();
+    for (var i = 0; i < users.length; i++) {
+        if (users[i].username === username) {
+            errorEl.textContent = '用户名已存在';
+            return;
+        }
+    }
+    users.push({ username: username, password: password });
+    saveUsers(users);
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newPassword').value = '';
+    errorEl.textContent = '';
+    renderUserList();
+}
+
+// ============================================================
+//  数据管理面板
+// ============================================================
+function getSubmissions() {
+    var raw = localStorage.getItem('submissions');
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch(e) { return []; }
+}
+
+function saveSubmissions(data) {
+    localStorage.setItem('submissions', JSON.stringify(data));
+}
+
+function openDataModal() {
+    document.getElementById('dataModal').style.display = 'flex';
+    document.getElementById('filterStart').value = '';
+    document.getElementById('filterEnd').value = '';
+    applyDataFilter();
+}
+
+function closeDataModal() {
+    document.getElementById('dataModal').style.display = 'none';
+}
+
+function applyDataFilter() {
+    var start = document.getElementById('filterStart').value;
+    var end = document.getElementById('filterEnd').value;
+    var all = getSubmissions();
+    var filtered = all.filter(function(item) {
+        var submitDate = item.submitTime.split('T')[0];
+        if (start && submitDate < start) return false;
+        if (end && submitDate > end) return false;
+        return true;
+    });
+    filtered.sort(function(a,b){ return b.submitTime.localeCompare(a.submitTime); });
+    renderDataList(filtered);
+}
+
+function resetDataFilter() {
+    document.getElementById('filterStart').value = '';
+    document.getElementById('filterEnd').value = '';
+    applyDataFilter();
+}
+
+function renderDataList(submissions) {
+    var container = document.getElementById('dataList');
+    container.innerHTML = '';
+    if (!submissions || submissions.length === 0) {
+        container.innerHTML = '<div class="no-data">暂无提交数据</div>';
+        return;
+    }
+    submissions.forEach(function(item, index) {
+        var div = document.createElement('div');
+        div.className = 'data-item';
+        // 勾选框
+        var chkDiv = document.createElement('div');
+        chkDiv.className = 'chk-box';
+        var chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.value = item.id;
+        chk.className = 'data-chk';
+        chkDiv.appendChild(chk);
+        div.appendChild(chkDiv);
+
+        var contentDiv = document.createElement('div');
+        contentDiv.className = 'content';
+        var summary = document.createElement('div');
+        summary.className = 'summary';
+        summary.innerHTML = 
+            '<span><strong>提交人：</strong>' + item.submitter + '</span>' +
+            '<span><strong>提交时间：</strong>' + new Date(item.submitTime).toLocaleString() + '</span>' +
+            '<span><strong>加班日期：</strong>' + item.workDate + '</span>' +
+            '<span><strong>总人数：</strong>' + item.totalPeople + '</span>' +
+            '<span><strong>总金额：</strong>' + item.totalAmount.toFixed(2) + ' 元</span>' +
+            '<button class="detail-btn" onclick="toggleDetail(this)">查看详情</button>';
+        contentDiv.appendChild(summary);
+        var detail = document.createElement('div');
+        detail.className = 'detail-content';
+        var tableHtml = '<table><thead><tr><th>序号</th><th>姓名</th><th>项目</th><th>时长(天)</th><th>金额(元)</th></tr></thead><tbody>';
+        item.rows.forEach(function(row, idx) {
+            tableHtml += '<tr><td>' + (idx+1) + '</td><td>' + (row.name||'') + '</td><td>' + (row.project||'') + '</td><td>' + (row.hours||0) + '</td><td>' + (row.amount||0).toFixed(2) + '</td></tr>';
+        });
+        tableHtml += '</tbody></table>';
+        detail.innerHTML = tableHtml;
+        contentDiv.appendChild(detail);
+        div.appendChild(contentDiv);
+        container.appendChild(div);
+    });
+}
+
+function toggleDetail(btn) {
+    var detail = btn.parentElement.nextElementSibling;
+    if (detail.style.display === 'block') {
+        detail.style.display = 'none';
+        btn.textContent = '查看详情';
+    } else {
+        detail.style.display = 'block';
+        btn.textContent = '收起详情';
+    }
+}
+
+// ===== 全选/取消全选 =====
+function toggleAllCheckboxes() {
+    var chks = document.querySelectorAll('.data-chk');
+    var checkedCount = 0;
+    chks.forEach(function(c) { if (c.checked) checkedCount++; });
+    var newState = (checkedCount !== chks.length);
+    chks.forEach(function(c) { c.checked = newState; });
+}
+
+// ===== 导出选中 =====
+function exportSelected() {
+    var chks = document.querySelectorAll('.data-chk:checked');
+    if (chks.length === 0) {
+        alert('请至少勾选一条记录');
+        return;
+    }
+    var ids = [];
+    chks.forEach(function(c) { ids.push(c.value); });
+    var all = getSubmissions();
+    var selected = all.filter(function(item) { return ids.indexOf(item.id) !== -1; });
+    if (selected.length === 0) {
+        alert('所选记录不存在，可能已被删除');
+        return;
+    }
+    // 构建导出数据（每条记录展开为明细行）
+    var rows = [];
+    var header = ['提交人', '提交时间', '加班日期', '上报日期', '事由', '姓名', '项目', '时长(天)', '金额(元)', '制表人签名', '分管领导签名', '领导签名'];
+    rows.push(header);
+    selected.forEach(function(item) {
+        var base = [item.submitter, new Date(item.submitTime).toLocaleString(), item.workDate, item.reportDate || '', item.reason || ''];
+        // 如果rows为空，则至少添加一行空明细，否则按明细展开
+        if (item.rows && item.rows.length > 0) {
+            item.rows.forEach(function(r) {
+                var row = base.concat([r.name||'', r.project||'', r.hours||0, r.amount||0, item.signMaker||'', item.signLeader1||'', item.signLeader2||'']);
+                rows.push(row);
+            });
+        } else {
+            var row = base.concat(['', '', 0, 0, item.signMaker||'', item.signLeader1||'', item.signLeader2||'']);
+            rows.push(row);
+        }
+    });
+    // 生成 workbook
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+    // 设置列宽
+    ws['!cols'] = [
+        {wch:12},{wch:20},{wch:14},{wch:14},{wch:20},
+        {wch:10},{wch:16},{wch:10},{wch:12},
+        {wch:14},{wch:14},{wch:14}
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, '加班明细');
+    var wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    var blob = new Blob([wbout], {type: 'application/octet-stream'});
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '加班单导出_' + new Date().toISOString().slice(0,10) + '.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+}
+
+// ===== 删除选中 =====
+function deleteSelected() {
+    var chks = document.querySelectorAll('.data-chk:checked');
+    if (chks.length === 0) {
+        alert('请至少勾选一条记录');
+        return;
+    }
+    if (!confirm('确定删除选中的 ' + chks.length + ' 条记录吗？此操作不可恢复。')) {
+        return;
+    }
+    var ids = [];
+    chks.forEach(function(c) { ids.push(c.value); });
+    var all = getSubmissions();
+    var remaining = all.filter(function(item) { return ids.indexOf(item.id) === -1; });
+    saveSubmissions(remaining);
+    // 刷新列表
+    applyDataFilter();
+}
+
+// ============================================================
+//  提交功能
+// ============================================================
+function handleSubmit() {
+    var reason = document.getElementById('reason').value.trim();
+    var workDate = document.getElementById('workDate').value;
+    var reportDate = document.getElementById('reportDate').value;
+    var signMaker = document.getElementById('signMaker').value.trim();
+    var signLeader1 = document.getElementById('signLeader1').value.trim();
+    var signLeader2 = document.getElementById('signLeader2').value.trim();
+
+    var rows = [];
+    var tbody = document.getElementById('tableBody');
+    var trs = tbody.querySelectorAll('tr');
+    var hasData = false;
+    trs.forEach(function(tr) {
+        var nameInput = tr.querySelector('.col-name input');
+        var projectInput = tr.querySelector('.col-project input');
+        var hoursInput = tr.querySelector('.col-hours input');
+        var amountSpan = tr.querySelector('.col-amount .amount-display');
+        var name = nameInput ? nameInput.value.trim() : '';
+        var project = projectInput ? projectInput.value.trim() : '';
+        var hours = hoursInput ? parseFloat(hoursInput.value) || 0 : 0;
+        var amount = amountSpan ? parseFloat(amountSpan.textContent) || 0 : 0;
+        if (name) {
+            hasData = true;
+            rows.push({ name: name, project: project, hours: hours, amount: amount });
+        }
+    });
+
+    if (!hasData) {
+        alert('请至少填写一行有效的姓名数据再提交。');
+        return;
+    }
+
+    var totalPeople = rows.length;
+    var totalAmount = rows.reduce(function(sum, row) { return sum + row.amount; }, 0);
+
+    var submitter = sessionStorage.getItem('username') || '未知用户';
+    var submission = {
+        id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        submitter: submitter,
+        submitTime: new Date().toISOString(),
+        workDate: workDate,
+        reportDate: reportDate,
+        reason: reason,
+        signMaker: signMaker,
+        signLeader1: signLeader1,
+        signLeader2: signLeader2,
+        rows: rows,
+        totalPeople: totalPeople,
+        totalAmount: totalAmount
+    };
+
+    var all = getSubmissions();
+    all.push(submission);
+    saveSubmissions(all);
+
+    alert('提交成功！加班单已保存。');
+}
+
+// ============================================================
+//  原有填表逻辑
+// ============================================================
+var appInitialized = false;
+
+function initApp() {
+    if (appInitialized) return;
+    appInitialized = true;
+    (function() {
+        'use strict';
+        var E = [
+            {i:1,n:'姚连英'},{i:2,n:'陈凤英'},{i:3,n:'沈秀明'},{i:4,n:'周伟'},{i:5,n:'叶勤'},{i:6,n:'丁福平'},{i:7,n:'潘叶萍'},{i:8,n:'宋卫兵'},{i:9,n:'郑红霞'},{i:10,n:'沈仁美'},{i:11,n:'陈娟红'},{i:12,n:'盛涛'},{i:13,n:'丁志林'},{i:14,n:'周纪'},{i:15,n:'奚向红'},{i:16,n:'邱世军'},{i:17,n:'沈萍茹'},{i:18,n:'杨伟伟'},{i:19,n:'李清'},{i:20,n:'黄东华'},{i:21,n:'盛春燕'},{i:22,n:'唐娟红'},{i:23,n:'袁美方'},{i:24,n:'潘玲贤'},{i:25,n:'姚士红'},{i:26,n:'周民蕾'},{i:27,n:'曹金花'},{i:28,n:'魏金霞'},{i:29,n:'赵晓慧'},{i:30,n:'徐娇华'},{i:31,n:'刘鹰'},{i:32,n:'陈小妹'},{i:33,n:'黄景观'},{i:34,n:'沈悦玲'},{i:35,n:'彭军芳'},{i:36,n:'沈文彬'},{i:37,n:'朱卫红'},{i:38,n:'王红星'},{i:39,n:'张海江'},{i:40,n:'陈建蓉'},{i:41,n:'王其敏'},{i:42,n:'王娟'},{i:43,n:'顾益粗'},{i:44,n:'蒋军妹'},{i:45,n:'高峻'},{i:46,n:'江英'},{i:47,n:'姚爱华'},{i:48,n:'杨红燕'},{i:49,n:'张奇鸣'},{i:50,n:'戎一超'},{i:51,n:'顾迎梅'},{i:52,n:'张传丽'},{i:53,n:'陈霄'},{i:54,n:'朱东新'},{i:55,n:'孙燕'},{i:56,n:'欧丽娜'},{i:57,n:'孙蓝'},{i:58,n:'杨文峰'},{i:59,n:'施娟'},{i:60,n:'奚美'},{i:61,n:'何绮健'},{i:62,n:'谷丹丹'},{i:63,n:'方时超'},{i:64,n:'吴怡婷'},{i:65,n:'吴楚婷'},{i:66,n:'祝伟国'},{i:67,n:'俞佳蕾'},{i:68,n:'陈琢'},{i:69,n:'王正伟'},{i:70,n:'高远'},{i:71,n:'孙玉'},{i:72,n:'陈威'},{i:73,n:'郑莉琳'},{i:74,n:'吴烨'},{i:75,n:'张超雄'},{i:76,n:'黄飞扬'},{i:77,n:'张颖'},{i:78,n:'盛伊凡'},{i:79,n:'张孟琦'},{i:80,n:'黎佳鋆'},{i:81,n:'谢驹伟'},{i:82,n:'徐奕炜'},{i:83,n:'陈佳妮'},{i:84,n:'王方方'},{i:85,n:'夏家浩'},{i:86,n:'吕祺雯'},{i:87,n:'张雨欣'},{i:88,n:'薛佳雯'},{i:89,n:'徐宏强'},{i:90,n:'刘小会'},{i:91,n:'朱欣杰'},{i:92,n:'林丹'},{i:93,n:'马梓昕'},{i:94,n:'杨锦'},{i:95,n:'鲍蕾'},{i:96,n:'王璇'}
+        ];
+        var M = {}, N = E.map(function(x){ M[x.n] = x.i; return x.n; });
+        var R = 120, D = [];
+        function initData(a) { D = []; for (var i=0; i<a; i++) D.push({n:'',p:'',h:0,s:''}); }
+        initData(10);
+
+        var B = document.getElementById('tableBody'),
+            CP = document.getElementById('countPeople'),
+            TA = document.getElementById('totalAmount'),
+            WD = document.getElementById('workDate'),
+            RD = document.getElementById('reportDate');
+
+        function renderTable() {
+            B.innerHTML = '';
+            for (var i=0; i<D.length; i++) {
+                var tr = document.createElement('tr'), d = D[i];
+                var c1 = document.createElement('td'); c1.className='col-seq'; c1.textContent = i+1; tr.appendChild(c1);
+                var c2 = document.createElement('td'); c2.className='col-id'; var i2=document.createElement('input'); i2.type='text'; i2.readOnly=true; i2.value = (d.n && M[d.n]) ? M[d.n] : ''; c2.appendChild(i2); tr.appendChild(c2);
+                var c3 = document.createElement('td'); c3.className='col-name'; var sl=document.createElement('input'); sl.type='text'; sl.autocomplete='off';
+                if (d.n) sl.value = d.n;
+                var dl = document.createElement('datalist'); dl.id = 'nl'+i;
+                N.forEach(function(n){ var o=document.createElement('option'); o.value=n; dl.appendChild(o); });
+                c3.appendChild(dl);
+                sl.setAttribute('list', 'nl'+i);
+                sl.dataset.row = i;
+                sl.oninput = function() {
+                    var ri = parseInt(this.dataset.row);
+                    D[ri].n = this.value;
+                    var id = document.querySelector('#tableBody tr:nth-child('+(ri+1)+') td.col-id input');
+                    if (id) id.value = (D[ri].n && M[D[ri].n]) ? M[D[ri].n] : '';
+                    updateStats();
+                };
+                c3.appendChild(sl);
+                tr.appendChild(c3);
+
+                var c4 = document.createElement('td'); c4.className='col-project'; var p2=document.createElement('input'); p2.type='text'; p2.placeholder=""; p2.value = d.p||''; p2.oninput = function(){ D[parseInt(this.dataset.row)].p = this.value; }; p2.dataset.row=i; c4.appendChild(p2); tr.appendChild(c4);
+
+                var c5 = document.createElement('td'); c5.className='col-hours'; var h2=document.createElement('input'); h2.type='number'; h2.step='0.5'; h2.min='0'; h2.value = d.h||''; h2.oninput = function() {
+                    var ri = parseInt(this.dataset.row), v = parseFloat(this.value);
+                    D[ri].h = (isNaN(v) || v===0) ? 0 : v;
+                    var sp = document.querySelector('#tableBody tr:nth-child('+(ri+1)+') td.col-amount .amount-display');
+                    if (sp) sp.textContent = (D[ri].h > 0) ? (D[ri].h * R).toFixed(2) : '';
+                    updateStats();
+                }; h2.dataset.row=i; c5.appendChild(h2); tr.appendChild(c5);
+
+                var c6 = document.createElement('td'); c6.className='col-unit'; var sp=document.createElement('span'); sp.className='unit-text'; sp.textContent='天'; c6.appendChild(sp); tr.appendChild(c6);
+                var c7 = document.createElement('td'); c7.className='col-amount'; var sp2=document.createElement('span'); sp2.className='amount-display'; sp2.textContent = (d.h && parseFloat(d.h)>0) ? (parseFloat(d.h)*R).toFixed(2) : ''; c7.appendChild(sp2); tr.appendChild(c7);
+                var c8 = document.createElement('td'); c8.className='col-sign'; var s2=document.createElement('input'); s2.type='text'; s2.placeholder=""; s2.value = d.s||''; s2.oninput = function(){ D[parseInt(this.dataset.row)].s = this.value; }; s2.dataset.row=i; c8.appendChild(s2); tr.appendChild(c8);
+                B.appendChild(tr);
+            }
+            var n = new Date(), ds = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+            if (!WD.value) WD.value = ds;
+            if (!RD.value) RD.value = ds;
+            updateStats();
+        }
+
+        function updateStats() {
+            var c=0, t=0;
+            for (var i=0; i<D.length; i++) { if (D[i].n && D[i].n.trim()!=='') c++; t += (D[i].h||0)*R; }
+            CP.textContent = c;
+            TA.textContent = t.toFixed(2);
+        }
+
+        window.addTableRow = function() {
+            D.push({n:'',p:'',h:0,s:''});
+            renderTable();
+            var w = document.querySelector('.table-wrap');
+            if (w) w.scrollTop = w.scrollHeight;
+        };
+        window.handlePrint = function() { window.print(); };
+        window.handleReset = function() {
+            initData(10);
+            document.getElementById('reason').value = '';
+            document.getElementById('signMaker').value = '';
+            document.getElementById('signLeader1').value = '';
+            document.getElementById('signLeader2').value = '';
+            var n = new Date(), ds = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+            document.getElementById('workDate').value = ds;
+            document.getElementById('reportDate').value = ds;
+            renderTable();
+        };
+
+        renderTable();
+    })();
+}
+
+// ============================================================
+//  页面加载时检查登录状态
+// ============================================================
+window.onload = function() {
+    checkLogin();
 };
-// =========================================
-
-})();
 </script>
 </body>
 </html>
